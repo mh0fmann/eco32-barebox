@@ -11,16 +11,6 @@ static int eco32_mem_init(void)
 }
 mem_initcall(eco32_mem_init);
 
-static int eco32_console_init(void)
-{
-    add_generic_device("eco32_serial", DEVICE_ID_DYNAMIC, NULL,
-                        ECO32_SOPC_UART_BASE, 0x20, IORESOURCE_MEM, NULL);
-    add_generic_device("eco32_disk", DEVICE_ID_DYNAMIC, NULL,
-                        ECO32_SOPC_DISK_BASE, 0x00080000, IORESOURCE_MEM, NULL);
-    return 0;
-}
-console_initcall(eco32_console_init);
-
 static int eco32_core_init(void)
 {
     barebox_set_model("eco32-generic");

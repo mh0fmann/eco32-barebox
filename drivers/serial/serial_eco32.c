@@ -58,7 +58,7 @@ static int eco32_serial_probe(struct device_d *dev)
     iores = dev_request_mem_resource(dev, 0);
     if (IS_ERR(iores))
         return PTR_ERR(iores);
-    priv->regs = IOMEM(iores->start);
+    priv->regs = (void*)((unsigned int)IOMEM(iores->start) | 0xC0000000);
 
     cdev->dev = dev;
     cdev->tstc = eco32_serial_tstc;
@@ -71,8 +71,17 @@ static int eco32_serial_probe(struct device_d *dev)
     return 0;
 }
 
-static struct driver_d eco32_serial_driver = {
-        .name  = "eco32_serial",
-        .probe = eco32_serial_probe,
+static __maybe_unused struct of_device_id eco32_serial_dt_ids[] = {
+    {
+        .compatible = "thm,eco32-uart",
+    }, {
+        /* sentinel */
+    }
 };
-console_platform_driver(eco32_serial_driver);
+
+static struct driver_d eco32_serial_driver = {
+    .name   = "eco32_serial",
+    .probe  = eco32_serial_probe,
+    .of_compatible = DRV_OF_COMPAT(eco32_serial_dt_ids),
+};
+device_platform_driver(eco32_serial_driver);

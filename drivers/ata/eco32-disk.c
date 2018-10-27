@@ -21,7 +21,7 @@
 
 void __iomem* regs;
 
-static int eco32disk_read(struct block_device *blk, void *buffer,
+static int eco32_disk_read(struct block_device *blk, void *buffer,
                          int block, int num_blocks)
 {
     while (num_blocks > 0) {
@@ -50,7 +50,7 @@ static int eco32disk_read(struct block_device *blk, void *buffer,
     return 0;
 }
 
-static int eco32disk_write(struct block_device *blk, const void *buffer,
+static int eco32_disk_write(struct block_device *blk, const void *buffer,
                           int block, int num_blocks)
 {
     while (num_blocks > 0) {
@@ -80,13 +80,13 @@ static int eco32disk_write(struct block_device *blk, const void *buffer,
 }
 
 static struct block_device_ops eco32_disk_ops = {
-    .read = eco32disk_read,
+    .read = eco32_disk_read,
 #ifdef CONFIG_BLOCK_WRITE
-    .write = eco32disk_write,
+    .write = eco32_disk_write,
 #endif
 };
 
-static int eco32disk_probe(struct device_d *dev)
+static int eco32_disk_probe(struct device_d *dev)
 {
     int rc;
     struct resource* iores;
@@ -99,7 +99,7 @@ static int eco32disk_probe(struct device_d *dev)
     iores = dev_request_mem_resource(dev, 0);
     if (IS_ERR(iores))
         return PTR_ERR(iores);
-    regs = IOMEM(iores->start);
+    regs = (void*)((unsigned int)IOMEM(iores->start) | 0xC0000000);
 
     blk->dev = dev;
     blk->ops = &eco32_disk_ops;
@@ -124,14 +124,17 @@ static int eco32disk_probe(struct device_d *dev)
     return 0;
 }
 
-static struct driver_d eco32disk_driver = {
-        .name   = "eco32_disk",
-        .probe  = eco32disk_probe,
+static __maybe_unused struct of_device_id eco32_disk_dt_ids[] = {
+    {
+        .compatible = "thm,eco32-disk",
+    }, {
+        /* sentinel */
+    }
 };
 
-static int eco32disk_init(void)
-{
-    platform_driver_register(&eco32disk_driver);
-    return 0;
-}
-device_initcall(eco32disk_init);
+static struct driver_d eco32_disk_driver = {
+    .name   = "eco32_disk",
+    .probe  = eco32_disk_probe,
+    .of_compatible = DRV_OF_COMPAT(eco32_disk_dt_ids),
+};
+device_platform_driver(eco32_disk_driver);
