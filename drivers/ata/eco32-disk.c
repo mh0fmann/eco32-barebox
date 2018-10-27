@@ -103,7 +103,6 @@ static int eco32_disk_probe(struct device_d *dev)
     while (!(readl(regs + CR) & INIT));
 
     if (readl(regs + CP) == 0) {
-        dev_err(dev, "No disk present\n");
         return -ENODEV;
     }
 
