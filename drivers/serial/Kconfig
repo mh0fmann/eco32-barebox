@@ -152,4 +152,9 @@ config DRIVER_SERIAL_LPUART
 	default y
 	bool "LPUART serial driver"
 
+config DRIVER_SERIAL_ECO32
+    depends on ECO32
+    default y
+    bool "ECO32 serial driver"
+
 endmenu

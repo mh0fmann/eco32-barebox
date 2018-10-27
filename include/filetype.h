@@ -45,6 +45,7 @@ enum filetype {
 	filetype_elf,
 	filetype_imx_image_v1,
 	filetype_imx_image_v2,
+	filetype_eco32,
 	filetype_max,
 };
 

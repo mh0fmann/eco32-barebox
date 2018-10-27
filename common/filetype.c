@@ -147,6 +147,25 @@ static int is_gpt_valid(const uint8_t *buf)
 	return 0;
 }
 
+#ifdef CONFIG_PARTITION_DISK_ECO32
+/**
+ * is_eco32(): test if the partition is a eco32 partition table
+ *
+ * Description: Returns 1 if partition is eco32 table
+ */
+static enum filetype is_eco32(const uint8_t *buf)
+{
+	unsigned int* p = (unsigned int*)(buf + (SECTOR_SIZE/16*31));
+	
+	if (p[0] == 0xF5A5F2F9 && p[1] == ~0xF5A5F2F9 && p[2] == 0xF5A5F2F9)
+	{
+		return filetype_eco32;
+	} else {
+		return filetype_unknown;
+	}
+}
+#endif
+
 static inline int fat_valid_media(u8 media)
 {
 	return (0xf8 <= media || media == 0xf0);
@@ -238,6 +257,18 @@ enum filetype file_detect_partition_table(const void *_buf, size_t bufsize)
 	 */
 	if (bufsize >= 520 && is_gpt_valid(buf8))
 		return filetype_gpt;
+
+#ifdef CONFIG_PARTITION_DISK_ECO32
+	/*
+	 * Test first for eco32 partition table first
+	 */
+	if (bufsize >= 1024)
+	{
+		type = is_eco32(buf8);
+		if (type != filetype_unknown)
+			return type;
+	}
+#endif
 
 	type = is_fat_or_mbr(buf8, NULL);
 	if (type != filetype_unknown)

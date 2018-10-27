@@ -85,6 +85,7 @@
 #define IH_ARCH_NDS32		20	/* ANDES Technology - NDS32  */
 #define IH_ARCH_OPENRISC	21	/* OpenRISC 1000  */
 #define IH_ARCH_ARM64		22	/* ARM64	*/
+#define IH_ARCH_ECO32       23  /* ECO32    */
 
 #if defined(__PPC__)
 #define IH_ARCH IH_ARCH_PPC
@@ -114,6 +115,8 @@
 #define IH_ARCH IH_ARCH_AVR32
 #elif defined(CONFIG_LINUX)
 #define IH_ARCH IH_ARCH_LINUX
+#elif defined(CONFIG_ECO32)
+#define IH_ARCH IH_ARCH_ECO32
 #endif
 
 /*

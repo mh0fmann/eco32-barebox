@@ -48,7 +48,7 @@ config BLOCK_WRITE
 
 config ELF
 	bool
-	depends on MIPS
+	depends on MIPS || ECO32
 
 config FILETYPE
 	bool

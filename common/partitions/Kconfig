@@ -32,3 +32,8 @@ config PARTITION_DISK_EFI_GPT_COMPARE
 	depends on PARTITION_DISK_EFI
 	default y
 	bool "EFI: GPT: compare primary and Alternate GPT header for validity"
+
+config PARTITION_DISK_ECO32
+	depends on PARTITION_DISK
+	default n
+	bool "ECO32 partition support"

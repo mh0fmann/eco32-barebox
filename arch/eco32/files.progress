@@ -1,0 +1,43 @@
+./Kconfig
+./defconfig
+./Makefile
+
+./lib/board.c                       done
+./lib/dtb.c                         done
+./lib/Makefile                      done
+./lib/clock.c                       done    (lesen ist 64bit?!)
+./lib/asm-offsets.c                 done
+
+./cpu/cpu.c                         done    (atm kein restart)
+./cpu/start.S                       done
+./cpu/barebox.lds.S                 done
+./cpu/Makefile                      done
+
+./dts/eco32sim.dts
+./dts/Makefile                      done
+
+./boards/generic/env/config
+./boards/generic/generic.c          done
+./boards/generic/Makefile           done
+./boards/generic/config.h           done
+
+./include/asm/byteorder.h           done
+./include/asm/dma.h                 done
+./include/asm/elf.h                 done
+./include/asm/unaligned.h           done
+./include/asm/cache.h               done
+./include/asm/string.h              done
+./include/asm/bitops.h              done
+./include/asm/mmu.h                 done
+./include/asm/common.h              done
+./include/asm/ptrace.h              done
+./include/asm/swab.h                done
+./include/asm/barebox.h             done
+./include/asm/sections.h            done
+./include/asm/io.h                  done
+./include/asm/posix_types.h         done
+./include/asm/types.h               done
+./include/asm/bitsperlong.h         done
+
+./include/asm/bitops/fls.h          done
+./include/asm/bitops/ffs.h          done

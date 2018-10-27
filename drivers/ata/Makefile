@@ -6,6 +6,7 @@ obj-$(CONFIG_DISK_ATA) += disk_ata_drive.o
 obj-$(CONFIG_DISK_AHCI) += ahci.o
 obj-$(CONFIG_DISK_AHCI_IMX) += sata-imx.o
 obj-$(CONFIG_DISK_SATA_MV) += sata_mv.o
+obj-$(CONFIG_DISK_ECO32) += eco32-disk.o
 
 # interface types
 
