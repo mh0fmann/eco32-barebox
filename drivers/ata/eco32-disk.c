@@ -50,6 +50,7 @@ static int eco32_disk_read(struct block_device *blk, void *buffer,
     return 0;
 }
 
+#ifdef CONFIG_BLOCK_WRITE
 static int eco32_disk_write(struct block_device *blk, const void *buffer,
                           int block, int num_blocks)
 {
@@ -78,6 +79,7 @@ static int eco32_disk_write(struct block_device *blk, const void *buffer,
     }
     return 0;
 }
+#endif
 
 static struct block_device_ops eco32_disk_ops = {
     .read = eco32_disk_read,
@@ -92,18 +94,24 @@ static int eco32_disk_probe(struct device_d *dev)
     struct resource* iores;
     struct block_device* blk;
 
-    while (!(readl(ECO32_SOPC_DISK_BASE + CR) & INIT));
-
-    blk = xzalloc(sizeof(struct block_device));
-    
     iores = dev_request_mem_resource(dev, 0);
     if (IS_ERR(iores))
         return PTR_ERR(iores);
     regs = (void*)((unsigned int)IOMEM(iores->start) | 0xC0000000);
 
+
+    while (!(readl(regs + CR) & INIT));
+
+    if (readl(regs + CP) == 0) {
+        dev_err(dev, "No disk present\n");
+        return -ENODEV;
+    }
+
+    blk = xzalloc(sizeof(struct block_device));
+
     blk->dev = dev;
     blk->ops = &eco32_disk_ops;
-    blk->num_blocks = readl(ECO32_SOPC_DISK_BASE + CP);
+    blk->num_blocks = readl(regs + CP);
 
     rc = cdev_find_free_index("disk");
     blk->cdev.name = basprintf("disk%d", rc);
@@ -111,7 +119,7 @@ static int eco32_disk_probe(struct device_d *dev)
 
     rc = blockdevice_register(blk);
     if (rc) {
-        dev_err(dev, "could not register eco32 disk", NULL);
+        dev_err(dev, "could not register eco32 disk\n");
         free(blk);
         return rc;
     }
