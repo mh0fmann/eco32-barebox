@@ -1,0 +1,13 @@
+if DISK
+
+menu "Simple Block Devices"
+
+config DISK_ECO32
+	bool "eco32 disk driver"
+	depends on ECO32
+	help
+	  select this to enable support for the eco32 disk
+
+endmenu
+
+endif
