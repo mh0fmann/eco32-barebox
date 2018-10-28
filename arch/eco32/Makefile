@@ -14,13 +14,9 @@ else
 BOARD  :=
 endif
 
-LIBGCC := $(shell $(CC) -print-libgcc-file-name)
-
 common-y += $(BOARD)
 common-y += arch/eco32/lib/
 common-y += arch/eco32/cpu/
-
-common-y += $(LIBGCC)
 
 lds-y += arch/eco32/cpu/barebox.lds
 
