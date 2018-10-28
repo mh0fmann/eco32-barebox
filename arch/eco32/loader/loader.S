@@ -37,7 +37,7 @@ start:
 no_mboot:
     addi    $19,$0,1                        # start loading with sector 1
     addi    $20,$0,CONFIG_ARCH_TEXT_BASE    # where to load the image
-    addi    $21,$0,2048                     # how many sectors to load
+    addi    $21,$0,BAREBOX_SIZE_IN_SECTORS  # how many sectors to load
 start1:
     addi    $4,$0,'.'
     jal     chrout
@@ -118,7 +118,7 @@ halt1:
 
     # messages
 strtmsg:
-    .string "Loading image "
+    .string "Loading Barebox "
 dremsg:
     .string "Disk read error\r\n"
 hltmsg:

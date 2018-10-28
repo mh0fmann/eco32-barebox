@@ -34,11 +34,14 @@ CPPFLAGS += -DTEXT_BASE=$(TEXT_BASE)
 %.dtb: scripts
 	$(Q)$(MAKE) $(build)=$(dts) $(dts)/$@
 
-loader.bin:
+loader.bin: barebox.bin
 	$(Q)echo "  AS      loader.o"
+	$(eval BAREBOX_SIZE_IN_SECTORS := \
+	$(shell echo "a=$(shell stat -c%s $?); b=512; if (a%b) a/b+1 else 1/b" | bc))
 	$(Q)$(CC) -o arch/eco32/loader/loader arch/eco32/loader/loader.S \
 	-T arch/eco32/loader/loader.lds -nostdlib \
-	-DCONFIG_ARCH_TEXT_BASE=$(TEXT_BASE)
+	-DCONFIG_ARCH_TEXT_BASE=$(TEXT_BASE) \
+	-DBAREBOX_SIZE_IN_SECTORS=$(BAREBOX_SIZE_IN_SECTORS)
 	$(Q)echo "  OBJCOPY loader"
 	$(Q)$(OBJCOPY) -O binary arch/eco32/loader/loader arch/eco32/loader/loader.bin
 
