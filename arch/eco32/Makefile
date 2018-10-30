@@ -42,18 +42,18 @@ loader.bin: barebox.bin
 	$(Q)$(OBJCOPY) -O binary arch/eco32/loader/loader arch/eco32/loader/loader.bin
 
 barebox.pbootblk: barebox.bin loader.bin
-	$(Q)echo "  BUILD   barebox.pbr"
-	$(Q)cat arch/eco32/loader/loader.bin $(KBUILD_BINARY) > barebox.pbr
+	$(Q)echo "  BUILD   barebox.pbootblk"
+	$(Q)cat arch/eco32/loader/loader.bin barebox.bin > $@
 
 barebox.mbootblk: barebox.bin loader.bin
 	$(Q)dd if=/dev/zero of=/tmp/zeros bs=512 count=1 2>/dev/null
 	$(Q)echo "  BUILD   barebox.mbootblk"
-	$(Q)cat arch/eco32/loader/loader.bin /tmp/zeros barebox.bin > barebox.mbootblk
+	$(Q)cat arch/eco32/loader/loader.bin /tmp/zeros barebox.bin > $@
 
 archclean:
 	$(Q)echo "  CLEAN   arch/eco32/loader"
 	$(Q)rm -f arch/eco32/loader/loader
 	$(Q)rm -f arch/eco32/loader/loader.o
 	$(Q)rm -f arch/eco32/loader/loader.bin
-	$(Q)rm -f barebox.pbr
+	$(Q)rm -f barebox.pbootblk
 	$(Q)rm -f barebox.mbootblk
