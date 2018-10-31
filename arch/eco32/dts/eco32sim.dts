@@ -6,6 +6,10 @@
     #size-cells = <1>;
     interrupt-parent = <&intc>;
 
+    chosen {
+        bootargs = "console=/dev/ttyS0 root=/dev/hda1";
+    };
+
     cpus {
         #address-cells = <1>;
         #size-cells = <0>;
@@ -69,7 +73,7 @@
         interrupts = <4>;
     };
     
-    graphic@0x3FC00000 {
+    graphic@3FC00000 {
         compatible = "thm,eco32-graphic";
         reg = <0x3FC00000 0x12C000>;
     };
