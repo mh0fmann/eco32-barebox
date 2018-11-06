@@ -6,10 +6,6 @@
     #size-cells = <1>;
     interrupt-parent = <&intc>;
 
-    chosen {
-        bootargs = "console=/dev/ttyS0 root=/dev/hda1";
-    };
-
     cpus {
         #address-cells = <1>;
         #size-cells = <0>;
