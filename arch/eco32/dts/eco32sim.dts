@@ -58,7 +58,7 @@
         interrupts = <8>;
     };
     
-    sdc@30400000 {
+    sdc@30600000 {
         compatible = "thm,eco32-sdc";
         reg = <0x30600000 0x10>;
     };
