@@ -247,6 +247,11 @@ static int fastboot_add_partition_variables(struct f_fastboot *f_fb,
 
 	ret = stat(fentry->filename, &s);
 	if (ret) {
+		device_detect_by_name(devpath_to_name(fentry->filename));
+		ret = stat(fentry->filename, &s);
+	}
+
+	if (ret) {
 		if (fentry->flags & FILE_LIST_FLAG_CREATE) {
 			ret = 0;
 			type = "file";
@@ -609,6 +614,16 @@ static void cb_getvar(struct f_fastboot *f_fb, const char *cmd)
 	fastboot_tx_print(f_fb, "OKAY");
 }
 
+static int rx_bytes_expected(struct f_fastboot *f_fb)
+{
+	int remaining = f_fb->download_size - f_fb->download_bytes;
+
+	if (remaining >= EP_BUFFER_SIZE)
+		return EP_BUFFER_SIZE;
+
+	return ALIGN(remaining, f_fb->out_ep->maxpacket);
+}
+
 static void rx_handler_dl_image(struct usb_ep *ep, struct usb_request *req)
 {
 	struct f_fastboot *f_fb = req->context;
@@ -632,9 +647,7 @@ static void rx_handler_dl_image(struct usb_ep *ep, struct usb_request *req)
 
 	f_fb->download_bytes += req->actual;
 
-	req->length = f_fb->download_size - f_fb->download_bytes;
-	if (req->length > EP_BUFFER_SIZE)
-		req->length = EP_BUFFER_SIZE;
+	req->length = rx_bytes_expected(f_fb);
 
 	show_progress(f_fb->download_bytes);
 
@@ -684,12 +697,9 @@ static void cb_download(struct f_fastboot *f_fb, const char *cmd)
 		fastboot_tx_print(f_fb, "FAILdata invalid size");
 	} else {
 		struct usb_request *req = f_fb->out_req;
-		struct usb_ep *ep = f_fb->out_ep;
 		fastboot_tx_print(f_fb, "DATA%08x", f_fb->download_size);
 		req->complete = rx_handler_dl_image;
-		req->length = EP_BUFFER_SIZE;
-		if (req->length < ep->maxpacket)
-			req->length = ep->maxpacket;
+		req->length = rx_bytes_expected(f_fb);
 	}
 }
 
@@ -986,12 +996,14 @@ static void cb_flash(struct f_fastboot *f_fb, const char *cmd)
 	}
 
 	if (IS_ENABLED(CONFIG_BAREBOX_UPDATE) && filetype_is_barebox_image(filetype)) {
+		struct bbu_handler *handler;
 		struct bbu_data data = {
 			.devicefile = filename,
 			.flags = BBU_FLAG_YES,
 		};
 
-		if (!barebox_update_handler_exists(&data))
+		handler = bbu_find_handler_by_device(data.devicefile);
+		if (!handler)
 			goto copy;
 
 		fastboot_tx_print(f_fb, "INFOThis is a barebox image...");
@@ -1010,7 +1022,7 @@ static void cb_flash(struct f_fastboot *f_fb, const char *cmd)
 		data.image = f_fb->buf;
 		data.imagefile = sourcefile;
 
-		ret = barebox_update(&data);
+		ret = barebox_update(&data, handler);
 
 		if (ret)
 			fastboot_tx_print(f_fb, "FAILupdate barebox: %s", strerror(-ret));

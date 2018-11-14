@@ -1017,6 +1017,22 @@ void inc_nlink(struct inode *inode)
 	inode->__i_nlink++;
 }
 
+void clear_nlink(struct inode *inode)
+{
+	if (inode->i_nlink) {
+		inode->__i_nlink = 0;
+	}
+}
+
+void set_nlink(struct inode *inode, unsigned int nlink)
+{
+	if (!nlink) {
+		clear_nlink(inode);
+	} else {
+		inode->__i_nlink = nlink;
+	}
+}
+
 static struct inode *alloc_inode(struct super_block *sb)
 {
 	static const struct inode_operations empty_iops;
@@ -1049,6 +1065,30 @@ struct inode *new_inode(struct super_block *sb)
 	list_add(&inode->i_sb_list, &sb->s_inodes);
 
 	return inode;
+}
+
+struct inode *iget_locked(struct super_block *sb, unsigned long ino)
+{
+	struct inode *inode;
+
+	list_for_each_entry(inode, &sb->s_inodes, i_sb_list) {
+		if (inode->i_ino == ino)
+			return iget(inode);
+	}
+
+	inode = new_inode(sb);
+	if (!inode)
+		return NULL;
+
+	inode->i_state = I_NEW;
+	inode->i_ino = ino;
+
+	return inode;
+}
+
+void iget_failed(struct inode *inode)
+{
+	iput(inode);
 }
 
 void iput(struct inode *inode)
@@ -1101,6 +1141,12 @@ const struct qstr slash_name = QSTR_INIT("/", 1);
 void d_set_d_op(struct dentry *dentry, const struct dentry_operations *op)
 {
 	dentry->d_op = op;
+
+	if (!op)
+		return;
+
+	if (op->d_revalidate)
+		dentry->d_flags |= DCACHE_OP_REVALIDATE;
 }
 
 /**
@@ -1243,6 +1289,35 @@ struct dentry *d_lookup(const struct dentry *parent, const struct qstr *name)
 
 void d_invalidate(struct dentry *dentry)
 {
+}
+
+static inline int d_revalidate(struct dentry *dentry, unsigned int flags)
+{
+	if (unlikely(dentry->d_flags & DCACHE_OP_REVALIDATE))
+		return dentry->d_op->d_revalidate(dentry, flags);
+	else
+		return 1;
+}
+
+/*
+ * This looks up the name in dcache and possibly revalidates the found dentry.
+ * NULL is returned if the dentry does not exist in the cache.
+ */
+static struct dentry *lookup_dcache(const struct qstr *name,
+				    struct dentry *dir,
+				    unsigned int flags)
+{
+	struct dentry *dentry = d_lookup(dir, name);
+	if (dentry) {
+		int error = d_revalidate(dentry, flags);
+		if (unlikely(error <= 0)) {
+			if (!error)
+				d_invalidate(dentry);
+			dput(dentry);
+			return ERR_PTR(error);
+		}
+	}
+	return dentry;
 }
 
 static inline void __d_clear_type_and_inode(struct dentry *dentry)
@@ -1456,7 +1531,7 @@ static struct dentry *__lookup_hash(const struct qstr *name,
 	if (!base)
 		return ERR_PTR(-ENOENT);
 
-	dentry = d_lookup(base, name);
+	dentry = lookup_dcache(name, base, flags);
 	if (dentry)
 		return dentry;
 
@@ -2423,6 +2498,7 @@ DIR *opendir(const char *pathname)
 	}
 
 	file.f_path.dentry = dir;
+	file.f_inode = d_inode(dir);
 	file.f_op = dir->d_inode->i_fop;
 
 	d = xzalloc(sizeof(*d));
