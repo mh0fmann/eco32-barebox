@@ -4,6 +4,8 @@ board-$(CONFIG_GENERIC) := generic
 
 KALLSYMS += --symbol-prefix=_
 
+KBUILD_DEFCONFIG := eco32_defconfig
+
 archprepare: maketools
 
 PHONY += maketools
