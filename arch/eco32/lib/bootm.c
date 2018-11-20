@@ -53,19 +53,47 @@ bootm_elf_done:
 
 int do_bootm_linux(struct image_data* data)
 {
-    void (*kernel)(char*, void*, unsigned int, unsigned int);
+    void (*kernel)(const char*, void*, unsigned int, unsigned int);
 
-    const char* cmdline = linux_bootargs_get();
+    const char* cmdline;
     int ret;
     void* fdt;
+    unsigned int initrd_start = 0, initrd_end = 0;
 
+    /* get cmdline */
     ret = bootm_load_os(data, data->os_address);
     if (ret)
         return ret;
 
+    cmdline = linux_bootargs_get();
+    if (IS_ERR(cmdline))
+        return 1;
+
+    /* get device tree */
     fdt = bootm_get_devicetree(data);
     if (IS_ERR(fdt))
         return 1;
+
+    /* get initrd */
+    if (bootm_has_initrd(data)) {
+        if (data->initrd_address == UIMAGE_INVALID_ADDRESS) {
+            return 1;
+        }
+
+        ret = bootm_load_initrd(data, data->initrd_address);
+        if (ret)
+            return ret;
+
+        initrd_start = data->initrd_res->start;
+        initrd_end = data->initrd_res->end;
+    }
+
+    if (bootm_verbose(data)) {
+        pr_info("cmdline:%s\n", cmdline);
+        pr_info("fdt@0x%08x\n", (unsigned int)fdt);
+        pr_info("initrd_start@0x%08x\n", initrd_start);
+        pr_info("initrd_end@0x%08x\n", initrd_end);
+    }
 
     if (data->dryrun)
         return 0;
@@ -81,7 +109,10 @@ int do_bootm_linux(struct image_data* data)
 
     flush_caches();
 
-    kernel(cmdline, NULL, 0, 0);
+    kernel(cmdline, fdt, initrd_start, initrd_end);
+
+    /* not reached */
+    return -1;
 }
 
 
