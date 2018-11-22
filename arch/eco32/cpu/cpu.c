@@ -2,8 +2,6 @@
 #include <init.h>
 #include <restart.h>
 
-extern void __reset(void);
-
 static void __noreturn eco32_restart_cpu(struct restart_handler *rst)
 {
     /* we do not restart atm */
