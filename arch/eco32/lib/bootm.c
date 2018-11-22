@@ -60,11 +60,12 @@ int do_bootm_linux(struct image_data* data)
     void* fdt;
     unsigned int initrd_start = 0, initrd_end = 0;
 
-    /* get cmdline */
+    /* load the kernel */
     ret = bootm_load_os(data, data->os_address);
     if (ret)
         return ret;
 
+    /* get cmdline */
     cmdline = linux_bootargs_get();
     if (IS_ERR(cmdline))
         return 1;
