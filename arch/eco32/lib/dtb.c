@@ -20,8 +20,24 @@
 #include <common.h>
 #include <init.h>
 #include <of.h>
+#include <memory.h>
 
 extern char __dtb_start[];
+
+
+void of_add_memory_bank(struct device_node *node, bool dump,
+                        int r, u64 base, u64 size)
+{
+    char s[5];
+
+    sprintf(s, "ram%d", r);
+    barebox_add_memory_bank(s, base | 0xC0000000, size);
+
+    pr_info("ram: 0x%08x - 0x%08x\n", (unsigned int)base, (unsigned int)size);
+
+    if (dump)
+        pr_info("%s: %s: 0x%08llx@0x%08llx\n", node->name, s, size, base);
+}
 
 static int eco32_of_init(void)
 {

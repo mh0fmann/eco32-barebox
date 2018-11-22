@@ -4,13 +4,6 @@
 #include <envfs.h>
 #include <init.h>
 
-static int eco32_mem_init(void)
-{
-    barebox_add_memory_bank("ram0", ECO32_SOPC_MEMORY_BASE, ECO32_SOPC_MEMORY_SIZE);
-
-    return 0;
-}
-mem_initcall(eco32_mem_init);
 
 static int eco32_core_init(void)
 {

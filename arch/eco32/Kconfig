@@ -8,7 +8,6 @@ config ECO32
     select GENERIC_LIB_LSHRDI3
     select HAVE_CONFIGURABLE_MEMORY_LAYOUT
     select HAVE_CONFIGURABLE_TEXT_BASE
-    select CONFIG_OFTREE_MEM_GENERIC
     select ELF
     default y
 

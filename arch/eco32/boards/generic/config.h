@@ -1,11 +1,6 @@
 #ifndef _GENERIC_NAMES_H_
 #define _GENERIC_NAMES_H_
 
-#define CONFIG_SYS_CLK_FREQ         20000000
-
 #define ECO32_TIMER_FREQ            50000000
-
-#define ECO32_SOPC_MEMORY_BASE      0xC0000000
-#define ECO32_SOPC_MEMORY_SIZE      0x02000000
 
 #endif
