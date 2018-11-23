@@ -1,4 +1,3 @@
-obj-y                       += clock.o
 obj-y                       += board.o
 obj-$(CONFIG_CMD_BOOTM)     += bootm.o
 obj-y                       += muldi3.o
