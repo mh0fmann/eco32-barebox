@@ -1,3 +1,16 @@
+/*
+ * Copyright (c) 2018 Martin Hofmann <martin.hofmann@mni.thm.de>
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 2
+ * as published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ */
+
 #include <config.h>
 #include <asm-generic/memory_layout.h>
 
@@ -31,12 +44,12 @@ tlb_inv_loop:
     mvts    $8,TLB_INDEX
     tbwi
     addi    $8,$8,1
-    bne $8,$9,tlb_inv_loop
+    bne     $8,$9,tlb_inv_loop
 
     # clear BSS
     addi    $8,$0,__bss_start
     addi    $9,$0,__bss_stop
-    j   bss_clr_test
+    j       bss_clr_test
 bss_clr_loop:
     stw $0,$8,0
     addi    $8,$8,4
