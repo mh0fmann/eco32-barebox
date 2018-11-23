@@ -37,7 +37,6 @@ static struct clocksource eco32_cs = {
 int eco32_cs_probe(struct device_d *dev)
 {
     struct resource *iores;
-    uint32_t val;
 
     if (timer_base != NULL) {
         pr_debug("cs already registered. skipping\n");
@@ -51,6 +50,8 @@ int eco32_cs_probe(struct device_d *dev)
     timer_base = (void*)((unsigned int)IOMEM(iores->start)|0xF0000000);
 
     eco32_cs.mult = clocksource_hz2mult(ECO32_TIMER_FREQ, eco32_cs.shift);
+    
+    init_clock(&eco32_cs);
 
     writel(0, timer_base + TI_CT);
     writel(0xFFFFFFFF, timer_base + TI_DI);
