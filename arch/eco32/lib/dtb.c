@@ -27,8 +27,6 @@ void of_add_memory_bank(struct device_node *node, bool dump,
     sprintf(s, "ram%d", r);
     barebox_add_memory_bank(s, base | 0xC0000000, size);
 
-    pr_info("ram: 0x%08x - 0x%08x\n", (unsigned int)base, (unsigned int)size);
-
     if (dump)
         pr_info("%s: %s: 0x%08llx@0x%08llx\n", node->name, s, size, base);
 }
