@@ -65,7 +65,7 @@ start1:
     subi    $21,$21,256
     bgt     $21,$0,start1
     cctl    7                               # sync caches
-    addi    $8,$0,CONFIG_ARCH_TEXT_BASE     # start executing mvstrt
+    addi    $8,$0,CONFIG_ARCH_TEXT_BASE     # start executing barebox
     jr  $8
 
     # read disk sectors
