@@ -30,26 +30,28 @@
         compatible = "thm,eco32-timer";
         reg = <0x30000000 0xC>;
         interrupts = <14>;
+        clock_frequency = <50000000>;
     };
     
     timer@30001000 {
         compatible = "thm,eco32-timer";
         reg = <0x30001000 0xC>;
         interrupts = <15>;
+        clock_frequency = <50000000>;
     };
 
     serial@30300000 {
         compatible = "thm,eco32-uart";
         reg = <0x30300000 0x10>;
         interrupts = <0>, <1>;
-        clock-frequenzy = <50000000>;
+        clock-frequency = <50000000>;
     };
     
     serial@30301000 {
         compatible = "thm,eco32-uart";
         reg = <0x30301000 0x10>;
         interrupts = <2>, <3>;
-        clock-frequenzy = <50000000>;
+        clock-frequency = <50000000>;
     };
     
     disk@30400000 {
