@@ -102,6 +102,11 @@ int usb_register_host(struct usb_host *host)
 	return 0;
 }
 
+void usb_unregister_host(struct usb_host *host)
+{
+	list_del(&host->list);
+}
+
 /**
  * set configuration number to configuration
  */
@@ -431,9 +436,10 @@ int usb_new_device(struct usb_device *dev)
 			   dev->serial, sizeof(dev->serial));
 
 	if (parent) {
-		sprintf(dev->dev.name, "%s-%d", parent->dev.name, dev->portnr - 1);
+		dev_set_name(&dev->dev, "%s-%d", parent->dev.name,
+			     dev->portnr - 1);
 	} else {
-		sprintf(dev->dev.name, "usb%d", dev->host->busnum);
+		dev_set_name(&dev->dev, "usb%d", dev->host->busnum);
 	}
 
 	dev->dev.id = DEVICE_ID_SINGLE;

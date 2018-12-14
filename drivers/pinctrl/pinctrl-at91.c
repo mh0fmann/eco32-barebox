@@ -510,7 +510,7 @@ static int at91_pinctrl_probe(struct device_d *dev)
 	if (ret)
 		return ret;
 
-	dev_info(dev, "AT91 pinctrl registered\n");
+	dev_dbg(dev, "AT91 pinctrl registered\n");
 
 	return 0;
 }
@@ -538,7 +538,7 @@ static int at91_pinctrl_init(void)
 {
 	return platform_driver_register(&at91_pinctrl_driver);
 }
-postcore_initcall(at91_pinctrl_init);
+core_initcall(at91_pinctrl_init);
 
 static int at91_gpio_get(struct gpio_chip *chip, unsigned offset)
 {
@@ -690,7 +690,7 @@ static int at91_gpio_probe(struct device_d *dev)
 		return ret;
 	}
 
-	dev_info(dev, "AT91 gpio driver registered\n");
+	dev_dbg(dev, "AT91 gpio driver registered\n");
 
 	return 0;
 }
@@ -718,4 +718,4 @@ static int at91_gpio_init(void)
 {
 	return platform_driver_register(&at91_gpio_driver);
 }
-postcore_initcall(at91_gpio_init);
+core_initcall(at91_gpio_init);

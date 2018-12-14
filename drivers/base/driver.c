@@ -183,6 +183,11 @@ int register_device(struct device_d *new_device)
 		}
 	}
 
+	if (new_device->id != DEVICE_ID_SINGLE)
+		new_device->unique_name = basprintf(FORMAT_DRIVER_NAME_ID,
+						    new_device->name,
+						    new_device->id);
+
 	debug ("register_device: %s\n", dev_name(new_device));
 
 	list_add_tail(&new_device->list, &device_list);
@@ -368,18 +373,6 @@ struct resource *dev_get_resource_by_name(struct device_d *dev,
 	return ERR_PTR(-ENOENT);
 }
 
-void *dev_get_mem_region_by_name(struct device_d *dev, const char *name)
-{
-	struct resource *res;
-
-	res = dev_get_resource_by_name(dev, IORESOURCE_MEM, name);
-	if (IS_ERR(res))
-		return ERR_CAST(res);
-
-	return (void __force *)res->start;
-}
-EXPORT_SYMBOL(dev_get_mem_region_by_name);
-
 void __iomem *dev_request_mem_region_by_name(struct device_d *dev, const char *name)
 {
 	struct resource *res;
@@ -396,22 +389,6 @@ void __iomem *dev_request_mem_region_by_name(struct device_d *dev, const char *n
 }
 EXPORT_SYMBOL(dev_request_mem_region_by_name);
 
-void __iomem *dev_request_mem_region_err_null(struct device_d *dev, int num)
-{
-	struct resource *res;
-
-	res = dev_get_resource(dev, IORESOURCE_MEM, num);
-	if (IS_ERR(res))
-		return NULL;
-
-	res = request_iomem_region(dev_name(dev), res->start, res->end);
-	if (IS_ERR(res))
-		return NULL;
-
-	return IOMEM(res->start);
-}
-EXPORT_SYMBOL(dev_request_mem_region_err_null);
-
 struct resource *dev_request_mem_resource(struct device_d *dev, int num)
 {
 	struct resource *res;
@@ -422,6 +399,18 @@ struct resource *dev_request_mem_resource(struct device_d *dev, int num)
 
 	return request_iomem_region(dev_name(dev), res->start, res->end);
 }
+
+void __iomem *dev_request_mem_region_err_null(struct device_d *dev, int num)
+{
+	struct resource *res;
+
+	res = dev_request_mem_resource(dev, num);
+	if (IS_ERR(res))
+		return NULL;
+
+	return IOMEM(res->start);
+}
+EXPORT_SYMBOL(dev_request_mem_region_err_null);
 
 void __iomem *dev_request_mem_region(struct device_d *dev, int num)
 {
@@ -435,29 +424,22 @@ void __iomem *dev_request_mem_region(struct device_d *dev, int num)
 }
 EXPORT_SYMBOL(dev_request_mem_region);
 
-int generic_memmap_ro(struct cdev *cdev, void **map, int flags)
-{
-	if (!cdev->dev)
-		return -EINVAL;
-
-	if (flags & PROT_WRITE)
-		return -EACCES;
-	*map = dev_get_mem_region(cdev->dev, 0);
-	if (IS_ERR(*map))
-		return PTR_ERR(*map);
-	return 0;
-}
-
 int generic_memmap_rw(struct cdev *cdev, void **map, int flags)
 {
 	if (!cdev->dev)
 		return -EINVAL;
 
 	*map = dev_get_mem_region(cdev->dev, 0);
-	if (IS_ERR(*map))
-		return PTR_ERR(*map);
 
-	return 0;
+	return PTR_ERR_OR_ZERO(*map);
+}
+
+int generic_memmap_ro(struct cdev *cdev, void **map, int flags)
+{
+	if (flags & PROT_WRITE)
+		return -EACCES;
+
+	return generic_memmap_rw(cdev, map, flags);
 }
 
 int dummy_probe(struct device_d *dev)
@@ -466,17 +448,39 @@ int dummy_probe(struct device_d *dev)
 }
 EXPORT_SYMBOL(dummy_probe);
 
-const char *dev_id(const struct device_d *dev)
+/**
+ * dev_set_name - set a device name
+ * @dev: device
+ * @fmt: format string for the device's name
+ *
+ * NOTE: This function expects dev->name to be free()-able, so extra
+ * precautions needs to be taken when mixing its usage with manual
+ * assignement of device_d.name.
+ */
+int dev_set_name(struct device_d *dev, const char *fmt, ...)
 {
-	static char buf[MAX_DRIVER_NAME + 16];
+	va_list vargs;
+	int err;
+	/*
+	 * Save old pointer in case we are overriding already set name
+	 */
+	char *oldname = dev->name;
 
-	if (dev->id != DEVICE_ID_SINGLE)
-		snprintf(buf, sizeof(buf), FORMAT_DRIVER_NAME_ID, dev->name, dev->id);
-	else
-		snprintf(buf, sizeof(buf), "%s", dev->name);
+	va_start(vargs, fmt);
+	err = vasprintf(&dev->name, fmt, vargs);
+	va_end(vargs);
 
-	return buf;
+	/*
+	 * Free old pointer, we do this after vasprintf call in case
+	 * old device name was in one of vargs
+	 */
+	free(oldname);
+
+	WARN_ON(err < 0);
+
+	return err;
 }
+EXPORT_SYMBOL_GPL(dev_set_name);
 
 static void devices_shutdown(void)
 {

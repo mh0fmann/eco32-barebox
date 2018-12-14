@@ -1235,7 +1235,7 @@ int of_property_write_u64_array(struct device_node *np,
  *
  * @np:		device node to which the property value is to be written.
  * @propname:	name of the property to be written.
- * value:	pointer to the string to write
+ * @value:	pointer to the string to write
  *
  * Search for a property in a device node and write a string to
  * it. If the property does not exist, it will be created and appended to
@@ -2272,6 +2272,18 @@ char *of_get_reproducible_name(struct device_node *node)
 	if (node->parent && of_get_property(node->parent, "ranges", NULL)) {
 		addr = of_translate_address(node, reg);
 		return basprintf("[0x%llx]", addr);
+	}
+
+	/*
+	 * Special workaround for the of partition binding. In the old binding
+	 * the partitions are directly under the hardware devicenode whereas in
+	 * the new binding the partitions are in an extra subnode with
+	 * "fixed-partitions" compatible. We skip this extra subnode from the
+	 * reproducible name to get the same name for both bindings.
+	 */
+	if (node->parent &&
+	    of_device_is_compatible(node->parent, "fixed-partitions")) {
+		node = node->parent;
 	}
 
 	na = of_n_addr_cells(node);

@@ -34,8 +34,8 @@ obj-$(CONFIG_GLOBALVAR)		+= globalvar.o
 obj-$(CONFIG_GREGORIAN_CALENDER) += date.o
 obj-$(CONFIG_KALLSYMS)		+= kallsyms.o
 obj-$(CONFIG_MALLOC_DLMALLOC)	+= dlmalloc.o
-obj-$(CONFIG_MALLOC_TLSF)	+= tlsf_malloc.o tlsf.o
-obj-$(CONFIG_MALLOC_DUMMY)	+= dummy_malloc.o
+obj-$(CONFIG_MALLOC_TLSF)	+= tlsf_malloc.o tlsf.o calloc.o
+obj-$(CONFIG_MALLOC_DUMMY)	+= dummy_malloc.o calloc.o
 obj-$(CONFIG_MEMINFO)		+= meminfo.o
 obj-$(CONFIG_MENU)		+= menu.o
 obj-$(CONFIG_MODULES)		+= module.o
@@ -64,6 +64,7 @@ obj-$(CONFIG_UBIFORMAT)		+= ubiformat.o
 obj-$(CONFIG_BAREBOX_UPDATE_IMX_NAND_FCB) += imx-bbu-nand-fcb.o
 obj-$(CONFIG_BOOT)		+= boot.o
 obj-$(CONFIG_SERIAL_DEV_BUS)	+= serdev.o
+obj-$(CONFIG_USBGADGET_START)	+= usbgadget.o
 
 ifdef CONFIG_PASSWORD
 

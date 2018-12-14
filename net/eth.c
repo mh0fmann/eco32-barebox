@@ -150,6 +150,7 @@ void of_eth_register_ethaddr(struct device_node *node, const char *ethaddr)
 
 	addr = xzalloc(sizeof(*addr));
 	addr->node = node;
+	addr->ethid = -1;
 	memcpy(addr->ethaddr, ethaddr, ETH_ALEN);
 	list_add_tail(&addr->list, &ethaddr_list);
 }
@@ -363,7 +364,7 @@ int eth_register(struct eth_device *edev)
 		return -1;
 	}
 
-	strcpy(edev->dev.name, "eth");
+	dev_set_name(&edev->dev, "eth");
 
 	if (edev->parent)
 		edev->dev.parent = edev->parent;

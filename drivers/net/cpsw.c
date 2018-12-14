@@ -916,7 +916,7 @@ static int cpsw_slave_setup(struct cpsw_slave *slave, int slave_num,
 	if (ret)
 		goto err_out;
 
-	sprintf(dev->name, "cpsw-slave");
+	dev_set_name(dev, "cpsw-slave");
 	dev->id = slave->slave_num;
 	dev->parent = priv->dev;
 	ret = register_device(dev);
@@ -1093,8 +1093,8 @@ static int cpsw_probe_dt(struct cpsw_priv *priv)
 
 			if (!of_find_node_by_name(child, "fixed-link")) {
 				ret = of_property_read_u32_array(child, "phy_id", phy_id, 2);
-				if (ret)
-					return ret;
+				if (!ret)
+					dev_warn(dev, "phy_id is deprecated, use phy-handle\n");
 			}
 
 			slave->dev.device_node = child;

@@ -24,6 +24,16 @@
 			device-path = &spinor, "partname:barebox-environment";
 		};
 	};
+
+	aliases {
+		/*
+		 * NVMEM device corresponding to EEPROM attached to
+                 * the switch shared DT node with it, so we use that
+                 * fact to create a desirable naming
+		 */
+		switch-eeprom = &switch;
+		microwire-eeprom = &microwire_eeprom;
+	};
 };
 
 &ecspi1 {
@@ -51,6 +61,14 @@
 	};
 };
 
+&mdio_gpio {
+	switch: switch@0 {};
+};
+
+&spi_gpio {
+	microwire_eeprom: eeprom@0 {};
+};
+
 &uart3 {
 	rave-sp {
 		watchdog {
@@ -59,8 +77,15 @@
 		};
 
 		eeprom@a4 {
+			nvmem-cells = <&shadow_config>;
+			nvmem-cell-names = "shadow-config";
+
 			boot_source: boot-source@83 {
 				reg = <0x83 1>;
+			};
+
+			shadow_config: shadow-config@1000 {
+				reg = <0x1000 0x400>;
 			};
 		};
 	};

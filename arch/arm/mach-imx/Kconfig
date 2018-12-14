@@ -84,58 +84,68 @@ comment "Freescale i.MX System-on-Chip"
 config ARCH_IMX1
 	bool
 	select CPU_ARM920T
+	select ARCH_HAS_IMX_GPT
 	select PINCTRL_IMX_IOMUX_V1
 
 config ARCH_IMX21
 	bool
 	select CPU_ARM926T
+	select ARCH_HAS_IMX_GPT
 	select PINCTRL_IMX_IOMUX_V1
 
 config ARCH_IMX25
 	bool
 	select CPU_ARM926T
 	select ARCH_HAS_FEC_IMX
+	select ARCH_HAS_IMX_GPT
 	select PINCTRL_IMX_IOMUX_V3
 
 config ARCH_IMX27
 	bool
 	select CPU_ARM926T
 	select ARCH_HAS_FEC_IMX
+	select ARCH_HAS_IMX_GPT
 	select PINCTRL_IMX_IOMUX_V1
 
 config ARCH_IMX31
 	select CPU_V6
 	bool
+	select ARCH_HAS_IMX_GPT
 	select PINCTRL_IMX_IOMUX_V2
 
 config ARCH_IMX35
 	bool
 	select CPU_V6
 	select ARCH_HAS_FEC_IMX
+	select ARCH_HAS_IMX_GPT
 	select PINCTRL_IMX_IOMUX_V3
 
 config ARCH_IMX50
 	bool
 	select CPU_V7
 	select ARCH_HAS_FEC_IMX
+	select ARCH_HAS_IMX_GPT
 	select PINCTRL_IMX_IOMUX_V3
 
 config ARCH_IMX51
 	bool
 	select CPU_V7
 	select ARCH_HAS_FEC_IMX
+	select ARCH_HAS_IMX_GPT
 	select PINCTRL_IMX_IOMUX_V3
 
 config ARCH_IMX53
 	bool
 	select CPU_V7
 	select ARCH_HAS_FEC_IMX
+	select ARCH_HAS_IMX_GPT
 	select PINCTRL_IMX_IOMUX_V3
 
 config ARCH_IMX6
 	bool
 	select ARCH_HAS_L2X0
 	select ARCH_HAS_FEC_IMX
+	select ARCH_HAS_IMX_GPT
 	select CPU_V7
 	select PINCTRL_IMX_IOMUX_V3
 	select OFTREE
@@ -163,6 +173,7 @@ config ARCH_IMX7
 	select OFTREE
 	select COMMON_CLK_OF_PROVIDER
 	select ARCH_HAS_FEC_IMX
+	select ARCH_HAS_IMX_GPT
 
 config ARCH_IMX8MQ
 	bool
@@ -184,6 +195,7 @@ config ARCH_VF610
 	select COMMON_CLK_OF_PROVIDER
 	select NVMEM
 	select IMX_OCOTP	# Needed for clock adjustement
+	select CLOCKSOURCE_ARM_GLOBAL_TIMER
 
 config IMX_MULTI_BOARDS
 	bool "Allow multiple boards to be selected"
@@ -413,6 +425,7 @@ config MACH_ZII_RDU1
 	bool "ZII i.MX51 RDU1"
 	select ARCH_IMX51
 	select MACH_FREESCALE_MX51_PDK_POWER
+	select CRC8
 
 config MACH_ZII_RDU2
 	bool "ZII i.MX6Q(+) RDU2"
@@ -453,6 +466,10 @@ config MACH_NXP_IMX8MQ_EVK
 	select FIRMWARE_IMX_LPDDR4_PMU_TRAIN
 	select FIRMWARE_IMX8MQ_ATF
 	select ARM_SMCCC
+
+config MACH_GRINN_LITEBOARD
+	bool "Grinn liteboard"
+	select ARCH_IMX6UL
 
 endif
 

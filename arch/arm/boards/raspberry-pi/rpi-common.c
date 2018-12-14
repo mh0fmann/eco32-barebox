@@ -174,6 +174,8 @@ const struct rpi_model rpi_models_old_scheme[] = {
 const struct rpi_model rpi_models_new_scheme[] = {
 	RPI_MODEL(0, "Unknown model", NULL),
 	RPI_MODEL(BCM2836_BOARD_REV_2_B, "2 Model B", rpi_b_plus_init),
+	RPI_MODEL(BCM2837_BOARD_REV_3_B, "3 Model B", rpi_b_plus_init),
+	RPI_MODEL(BCM2835_BOARD_REV_ZERO, "Zero", rpi_b_plus_init),
 };
 
 static int rpi_board_rev = 0;
@@ -288,8 +290,8 @@ static int rpi_clock_init(void)
 	if (IS_ERR(clk))
 		return PTR_ERR(clk);
 
-	clk_register_clkdev(clk, NULL, "20300000.sdhci");
-	clk_register_clkdev(clk, NULL, "3f300000.sdhci");
+	clkdev_add_physbase(clk, 0x20300000, NULL);
+	clkdev_add_physbase(clk, 0x3f300000, NULL);
 
 	return 0;
 }
