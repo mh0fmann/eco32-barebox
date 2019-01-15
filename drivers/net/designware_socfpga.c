@@ -1,20 +1,7 @@
+// SPDX-License-Identifier: GPL-2.0-or-later
 /*
  * (C) Copyright 2010
  * Vipin Kumar, ST Micoelectronics, vipin.kumar@st.com.
- *
- * See file CREDITS for list of people who contributed to this
- * project.
- *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License as
- * published by the Free Software Foundation; either version 2 of
- * the License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
  */
 
 /*
@@ -158,9 +145,7 @@ static int socfpga_dwc_ether_probe(struct device_d *dev)
 	if (ret)
 		return ret;
 
-	socfpga_dwc_set_phy_mode(dwc_dev);
-
-	return 0;
+	return socfpga_dwc_set_phy_mode(dwc_dev);
 }
 
 static struct dw_eth_drvdata socfpga_stmmac_drvdata = {

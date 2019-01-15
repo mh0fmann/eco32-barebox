@@ -407,7 +407,7 @@ static void e1000_eeprom_uses_microwire(struct e1000_eeprom_info *eeprom,
 	eeprom->read = e1000_read_eeprom_microwire;
 }
 
-size_t e1000_igb_get_flash_size(struct e1000_hw *hw)
+static size_t e1000_igb_get_flash_size(struct e1000_hw *hw)
 {
 	struct device_node *node =
 		hw->pdev->dev.device_node;
@@ -883,7 +883,7 @@ static int e1000_flash_mode_erase_chunk(struct e1000_hw *hw, loff_t offset,
 	ret = e1000_poll_reg(hw, E1000_FLSWCTL,
 			     E1000_FLSWCTL_DONE | E1000_FLSWCTL_FLBUSY,
 			     E1000_FLSWCTL_DONE,
-			     10 * SECOND);
+			     40 * SECOND);
 	if (ret < 0) {
 		dev_err(hw->dev,
 			"Timeout waiting for FLSWCTL.DONE to be set (erase)\n");
@@ -1504,7 +1504,7 @@ static int e1000_mtd_unlock(struct mtd_info *mtd, loff_t ofs, size_t len)
 	return e1000_mtd_sr_rmw(mtd, SR_BPALL, 0x0);
 }
 
-int e1000_register_invm(struct e1000_hw *hw)
+static int e1000_register_invm(struct e1000_hw *hw)
 {
 	int ret;
 	u16 word;
