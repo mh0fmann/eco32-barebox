@@ -64,7 +64,7 @@ bootm_elf_done:
 }
 
 
-int do_bootm_linux(struct image_data* data)
+static int do_bootm_linux(struct image_data* data)
 {
     void (*kernel)(const char*, void*, unsigned int, unsigned int);
 

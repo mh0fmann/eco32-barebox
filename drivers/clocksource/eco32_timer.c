@@ -34,7 +34,7 @@ static struct clocksource eco32_cs = {
     .shift  = 10,
 };
 
-int eco32_cs_probe(struct device_d *dev)
+static int eco32_cs_probe(struct device_d *dev)
 {
     struct resource *iores;
     unsigned int clock_frequency = 0;

@@ -17,6 +17,8 @@
 #include <memory.h>
 #include <asm-generic/memory_layout.h>
 
+void __noreturn eco32_start_barebox(void);
+
 void __noreturn eco32_start_barebox(void)
 {
     mem_malloc_init((void *)(MALLOC_BASE),
