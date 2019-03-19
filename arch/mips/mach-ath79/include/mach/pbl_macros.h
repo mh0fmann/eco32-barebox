@@ -393,12 +393,30 @@ skip_pll_ram_config:
 	dcache_enable
 
 	pbl_ar9331_uart_enable
-	debug_ll_ar9331_init
-	mips_nmon
+	debug_ll_ath79_init
 
 	pbl_ar9331_mdio_gpio_enable
 
-	copy_to_link_location	pbl_start
+	.set	pop
+	.endm
+
+	.macro	ar9331_pbl_generic_sram_start
+	.set	push
+	.set	noreorder
+
+	mips_barebox_10h
+
+	hornet_mips24k_cp0_setup
+
+	hornet_1_1_war
+
+	pbl_ar9331_pll
+	pbl_ar9331_ram_generic_config
+
+	pbl_ar9331_uart_enable
+	debug_ll_ath79_init
+
+	pbl_ar9331_mdio_gpio_enable
 
 	.set	pop
 	.endm

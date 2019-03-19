@@ -1,21 +1,10 @@
+// SPDX-License-Identifier: GPL-2.0
 /*
  * Copyright (C) 2014 Lucas Stach <l.stach@pengutronix.de>
  *
  * based on code
  * Copyright (c) 2010, CompuLab, Ltd.
  * Copyright (c) 2008-2009, NVIDIA Corporation.
- *
- * This program is free software; you can redistribute it and/or modify it
- * under the terms and conditions of the GNU General Public License,
- * version 2, as published by the Free Software Foundation.
- *
- * This program is distributed in the hope it will be useful, but WITHOUT
- * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
- * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
- * more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
 #include <common.h>
@@ -377,15 +366,9 @@ static int tegra_pcie_write_conf(struct pci_bus *bus, unsigned int devfn,
 	return PCIBIOS_SUCCESSFUL;
 }
 
-static int tegra_pcie_res_start(struct pci_bus *bus, resource_size_t res_addr)
-{
-	return res_addr;
-}
-
-static struct pci_ops tegra_pcie_ops = {
+static const struct pci_ops tegra_pcie_ops = {
 	.read = tegra_pcie_read_conf,
 	.write = tegra_pcie_write_conf,
-	.res_start = tegra_pcie_res_start,
 };
 
 static unsigned long tegra_pcie_port_get_pex_ctrl(struct tegra_pcie_port *port)

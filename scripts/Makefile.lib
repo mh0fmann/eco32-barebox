@@ -1,5 +1,3 @@
-# Backward compatibility - to be removed...
-extra-y	+= $(EXTRA_TARGETS)
 # Figure out what we need to build from the various variables
 # ===========================================================================
 
@@ -177,6 +175,28 @@ $(foreach m, $(notdir $1), \
 	$(addprefix $(obj)/, $(foreach s, $3, $($(m:%$(strip $2)=%$(s)))))))
 endef
 
+# LEX
+# ---------------------------------------------------------------------------
+quiet_cmd_flex = LEX     $@
+      cmd_flex = $(LEX) -o$@ -L $<
+
+$(obj)/%.lex.c: $(src)/%.l FORCE
+	$(call if_changed,flex)
+
+# YACC
+# ---------------------------------------------------------------------------
+quiet_cmd_bison = YACC    $@
+      cmd_bison = $(YACC) -o$@ -t -l $<
+
+$(obj)/%.tab.c: $(src)/%.y FORCE
+	$(call if_changed,bison)
+
+quiet_cmd_bison_h = YACC    $@
+      cmd_bison_h = $(YACC) -o/dev/null --defines=$@ -t -l $<
+
+$(obj)/%.tab.h: $(src)/%.y FORCE
+	$(call if_changed,bison_h)
+
 # Shipped files
 # ===========================================================================
 
@@ -194,7 +214,7 @@ $(obj)/%:: $(src)/%_shipped
 #	target: source(s) FORCE
 #		$(if_changed,ld/objcopy/gzip)
 #
-#	and add target to EXTRA_TARGETS so that we know we have to
+#	and add target to extra-y so that we know we have to
 #	read in the saved command line
 
 # Linking
@@ -304,8 +324,10 @@ $(obj)/%.bbenv$(DEFAULT_COMPRESSION_SUFFIX).S: $(src)/%.bbenv$(DEFAULT_COMPRESSI
 quiet_cmd_env = ENV     $@
 cmd_env=$(srctree)/scripts/genenv $(srctree) $(objtree) $@ $<
 
+# genenv is always called, but only generates output when the file actually
+# changes, so that the dependent targets are not unnecessarily rebuilt
 %.bbenv$(DEFAULT_COMPRESSION_SUFFIX): % FORCE
-	$(call if_changed,env)
+	$(call cmd,env)
 
 # Bzip2
 # ---------------------------------------------------------------------------

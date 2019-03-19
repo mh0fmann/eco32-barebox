@@ -148,7 +148,7 @@ static void pl011_rlcr(struct amba_uart_port *uart, u32 lcr)
 	}
 }
 
-int pl011_init_port (struct console_device *cdev)
+static int pl011_init_port(struct console_device *cdev)
 {
 	struct amba_uart_port *uart = to_amba_uart_port(cdev);
 
@@ -185,7 +185,7 @@ static int pl011_probe(struct amba_device *dev, const struct amba_id *id)
 	struct regulator *r;
 
 	r = regulator_get(&dev->dev, NULL);
-	if (r) {
+	if (!IS_ERR(r)) {
 		int ret;
 
 		ret = regulator_enable(r);

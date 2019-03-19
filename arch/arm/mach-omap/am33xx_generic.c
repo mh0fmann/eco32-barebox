@@ -256,35 +256,11 @@ int am33xx_init(void)
 
 int am33xx_devices_init(void)
 {
-	return am33xx_gpio_init();
+	am33xx_gpio_init();
+	add_generic_device("omap-dmtimer", 0, NULL, AM33XX_DMTIMER2_BASE, 0x400,
+			   IORESOURCE_MEM, NULL);
+	return 0;
 }
-
-/* UART Defines */
-#define UART_SYSCFG_OFFSET	0x54
-#define UART_SYSSTS_OFFSET	0x58
-
-#define UART_CLK_RUNNING_MASK	0x1
-#define UART_RESET		(0x1 << 1)
-#define UART_SMART_IDLE_EN	(0x1 << 0x3)
-
-void am33xx_uart_soft_reset(void __iomem *uart_base)
-{
-	int reg;
-
-	reg = readl(uart_base + UART_SYSCFG_OFFSET);
-	reg |= UART_RESET;
-	writel(reg, (uart_base + UART_SYSCFG_OFFSET));
-
-	while ((readl(uart_base + UART_SYSSTS_OFFSET) &
-		UART_CLK_RUNNING_MASK) != UART_CLK_RUNNING_MASK)
-		;
-
-	/* Disable smart idle */
-	reg = readl((uart_base + UART_SYSCFG_OFFSET));
-	reg |= UART_SMART_IDLE_EN;
-	writel(reg, (uart_base + UART_SYSCFG_OFFSET));
-}
-
 
 #define VTP_CTRL_READY		(0x1 << 5)
 #define VTP_CTRL_ENABLE		(0x1 << 6)
@@ -498,18 +474,18 @@ int am33xx_of_register_bootdevice(void)
 	switch (bootsource_get()) {
 	case BOOTSOURCE_MMC:
 		if (bootsource_get_instance() == 0)
-			dev = of_device_enable_and_register_by_name("mmc@48060000");
+			dev = of_device_enable_and_register_by_alias("mmc0");
 		else
-			dev = of_device_enable_and_register_by_name("mmc@481d8000");
+			dev = of_device_enable_and_register_by_alias("mmc1");
 		break;
 	case BOOTSOURCE_NAND:
 		dev = of_device_enable_and_register_by_name("gpmc@50000000");
 		break;
 	case BOOTSOURCE_SPI:
-		dev = of_device_enable_and_register_by_name("spi@48030000");
+		dev = of_device_enable_and_register_by_alias("spi0");
 		break;
 	case BOOTSOURCE_NET:
-		dev = of_device_enable_and_register_by_name("ethernet@4a100000");
+		dev = of_device_enable_and_register_by_alias("ethernet0");
 		break;
 	default:
 		/* Use nand fallback */

@@ -3,13 +3,29 @@
 Barebox Bootchooser
 ===================
 
-In many cases embedded systems are layed out redundantly with multiple
+In many cases embedded systems are laid out redundantly with multiple
 kernels and multiple root file systems. The *bootchooser* framework provides
 the building blocks to model different use cases without the need to start
 from scratch over and over again.
 
 The *bootchooser* works on abstract boot targets, each with a set of properties
 and implements an algorithm which selects the highest priority target to boot.
+
+To make the *bootchooser* work requires a fixed set of configuration parameters
+and a storage backend for saving status information.
+Currently supported storage backends are either nv variables or the
+barebox *state* framework.
+
+The *Bootchooser* itself is executed as a normal barebox boot target, i.e. one
+can start it via::
+
+  boot bootchooser
+
+or by e.g. setting ``boot.default`` to ``bootchooser``.
+
+.. note:: As ``boot.default`` accepts multiple values, it can also be used to
+  specify a fallback boot target in case the bootchooser fails booting, e.g.
+  ``bootchooser recovery``.
 
 Bootchooser Targets
 -------------------
@@ -56,25 +72,58 @@ When booting, *bootchooser* starts the boot target with the highest ``priority``
 has a non-zero ``remaining_attempts`` counter. With every start of a boot target the
 ``remaining_attempts`` counter of this boot target is decremented by one. This means
 every boot target's ``remaining_attempts`` counter reaches zero sooner or later and
-the boot target won't be booted anymore. To prevent that, the ``remaining_attempts``
-counter must be reset to its default. There are different flags in the
-*bootchooser* which control resetting the ``remaining_attempts`` counter,
+the boot target won't be booted anymore.
+This behavior assures that one can retry booting a target a limited number of
+times to handle temporary issues (such as power outage) and optionally allows
+booting a fallback in case of a permanent failure.
+To indicate a successful boot, one must explicitly reset the remaining
+attempts counter. See `Marking a Boot as Successful`_.
+
+The bootchooser algorithm aborts when all enabled targets (priority > 0) have
+no remaining attempts left.
+
+To prevent ending up in an unbootable system after a number of failed boot
+attempts, there is a also a built-in mechanism to reset the counters to their defaults,
 controlled by the ``global.bootchooser.reset_attempts`` variable. It holds a
-list of space separated flags. Possible values are:
+list of space-separated flags. Possible values are:
 
 - empty: counters will never be reset
-- ``power-on``: The ``remaining_attempts`` counters of all enabled boot targets are reset
-  after a ``power-on`` reset (``$global.system.reset="POR"``). This means after a power
-  cycle all boot targets will be tried again for the configured number of retries.
-- ``all-zero``: The ``remaining_attempts`` counters of all enabled boot targets are
-  reset when none of them has any ``remaining_attempts`` left.
+- ``power-on``: When the bootchooser starts and a power-on reset
+  (``$global.system.reset="POR"``) is detected, the ``remaining_attempts``
+  counters of all enabled targets are reset to their defaults.
+  This means after a power cycle all boot targets will be tried again for the configured number of retries.
+- ``all-zero``: When the bootchooser starts and the ``remaining_attempts``
+  counters of all enabled targets are zero, the ``remaining_attempts``
+  counters of all enabled targets are reset to their defaults.
 
-Additionally the ``remaining_attempts`` counter can be reset manually using the
-:ref:`bootchoser command <command_bootchooser>`. This allows for custom conditions
-under which a system is marked as good.
-In case only the booted system itself knows when it is in a good state, the
-barebox-state tool from the dt-utils_ package can be used to reset the
-``remaining_attempts`` counter from the running system.
+If ``global.bootchooser.retry`` is enabled (set to ``1``), the bootchooser
+algorithm will iterate through all valid boot targets (and decrease their
+counters) until one succeeds or none is left.
+If it is disabled only one attempt will be made for each bootchooser call.
+
+Marking a Boot as Successful
+############################
+
+While the bootchooser algorithm handles attempts decrementation, retries and
+selection of the right boot target itself, it cannot decide if the system
+booted successfully on its own.
+
+In case only the booted system itself knows when it is in a good state,
+it can report this to the bootchooser from Linux userspace using the
+*barebox-state* tool from the dt-utils_ package.::
+
+  barebox-state -s bootstate.<target>.remaining_attemps <reset-value>
+
+If instead the bootchooser can detect a failed boot itself using the
+:ref:`reset reason <reset_reason>` (WDG), one can mark the boot successful
+using the barebox :ref:`bootchoser command <command_bootchooser>`::
+
+  bootchooser -s
+
+to mark the last boot successful.
+This will reset the ``remaining_attempts`` counter of the *last chosen* slot to
+its default value (``reset_attempts``).
+
 
 .. _dt-utils: https://git.pengutronix.de/cgit/tools/dt-utils
 
@@ -97,7 +146,7 @@ options not specific to any boot target.
 ``global.bootchooser.reset_attempts``
   Already described in :ref:`Bootchooser Algorithm <bootchooser,algorithm>`
 ``global.bootchooser.reset_priorities``
-  A space separated list of events that cause *bootchooser* to reset the priorities of
+  A space-separated list of events that cause *bootchooser* to reset the priorities of
   all boot targets. Possible values:
 
   * empty: priorities will never be reset
@@ -108,10 +157,11 @@ options not specific to any boot target.
   Otherwise the ``boot`` command will return with an error after the first failed
   boot target.
 ``global.bootchooser.state_prefix``
-  Variable prefix when *bootchooser* is used with the *state* framework as backend
-  for storing run-time data, see below.
+  If set, this makes *bootchooser* use the *state* framework as backend for
+  storing run-time data and defines the name of the state instance to use, see
+  :ref:`below <bootchooser,state_framework>`.
 ``global.bootchooser.targets``
-  Space separated list of boot targets that are used. For each entry in the list
+  Space-separated list of boot targets that are used. For each entry in the list
   a corresponding
   set of ``global.bootchooser.<targetname>.<variablename>`` variables must exist.
 ``global.bootchooser.last_chosen``
@@ -125,7 +175,7 @@ Setup Example
 We want to set up a redundant machine with two bootable systems within one shared
 memory, here a NAND type flash memory with a UBI partition. We have a 512 MiB NAND
 type flash, to be used only for the root filesystem. The devicetree doesn't
-define any partition, because we want to run one UBI partition with two volumens
+define any partition, because we want to run one UBI partition with two volumes
 for the redundant root filesystems on this flash memory.
 
 .. code-block:: text

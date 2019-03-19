@@ -29,7 +29,6 @@
 #include <globalvar.h>
 #include <linux/sizes.h>
 #include <net.h>
-#include <envfs.h>
 #include <bootsource.h>
 #include <asm/armlinux.h>
 #include <generated/mach-types.h>
@@ -67,6 +66,9 @@ static int baltos_read_eeprom(void)
 	char *buf, var_buf[32];
 	int rc;
 	unsigned char mac_addr[6];
+
+	if (!of_machine_is_compatible("vscom,onrisc"))
+		return 0;
 
 	rc = read_file_2("/dev/eeprom0",
 			 &size,

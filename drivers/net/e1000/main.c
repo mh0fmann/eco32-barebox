@@ -33,13 +33,10 @@ tested on both gig copper and gig fiber boards
 #include <init.h>
 #include <malloc.h>
 #include <linux/pci.h>
+#include <linux/iopoll.h>
 #include <dma.h>
 #include "e1000.h"
-
-static u32 inline virt_to_bus(struct pci_dev *pdev, void *adr)
-{
-	return (u32)adr;
-}
+#include <io-64-nonatomic-lo-hi.h>
 
 #define PCI_VENDOR_ID_INTEL	0x8086
 
@@ -231,7 +228,7 @@ static int32_t e1000_get_hw_eeprom_semaphore(struct e1000_hw *hw)
 	if (!timeout) {
 		/* Release semaphores */
 		e1000_put_hw_eeprom_semaphore(hw);
-		dev_dbg(hw->dev, "Driver can't access the Eeprom - "
+		dev_err(hw->dev, "Driver can't access the Eeprom - "
 				"SWESMBI bit is set.\n");
 		return -E1000_ERR_EEPROM;
 	}
@@ -262,7 +259,7 @@ int32_t e1000_swfw_sync_acquire(struct e1000_hw *hw, uint16_t mask)
 	}
 
 	if (!timeout) {
-		dev_dbg(hw->dev, "Driver can't access resource, SW_FW_SYNC timeout.\n");
+		dev_err(hw->dev, "Driver can't access resource, SW_FW_SYNC timeout.\n");
 		return -E1000_ERR_SWFW_SYNC;
 	}
 
@@ -332,7 +329,7 @@ static int e1000_get_ethaddr(struct eth_device *edev, unsigned char *adr)
 
 	for (i = 0; i < NODE_ADDRESS_SIZE; i += 2) {
 		if (e1000_read_eeprom(hw, i >> 1, 1, &eeprom_data) < 0) {
-			dev_dbg(hw->dev, "EEPROM Read Error\n");
+			dev_err(hw->dev, "EEPROM Read Error\n");
 			return -E1000_ERR_EEPROM;
 		}
 		adr[i] = eeprom_data & 0xff;
@@ -832,20 +829,6 @@ static int e1000_setup_link(struct e1000_hw *hw)
 	if (e1000_check_phy_reset_block(hw))
 		return E1000_SUCCESS;
 
-	/* Read and store word 0x0F of the EEPROM. This word contains bits
-	 * that determine the hardware's default PAUSE (flow control) mode,
-	 * a bit that determines whether the HW defaults to enabling or
-	 * disabling auto-negotiation, and the direction of the
-	 * SW defined pins. If there is no SW over-ride of the flow
-	 * control setting, then the variable hw->fc will
-	 * be initialized based on a value in the EEPROM.
-	 */
-	if (e1000_read_eeprom(hw, EEPROM_INIT_CONTROL2_REG, 1,
-				&eeprom_data) < 0) {
-		dev_dbg(hw->dev, "EEPROM Read Error\n");
-		return -E1000_ERR_EEPROM;
-	}
-
 	switch (hw->mac_type) {
 	case e1000_ich8lan:
 	case e1000_82573:
@@ -854,6 +837,22 @@ static int e1000_setup_link(struct e1000_hw *hw)
 		hw->fc = e1000_fc_full;
 		break;
 	default:
+		/* Read and store word 0x0F of the EEPROM. This word
+		 * contains bits that determine the hardware's default
+		 * PAUSE (flow control) mode, a bit that determines
+		 * whether the HW defaults to enabling or disabling
+		 * auto-negotiation, and the direction of the SW
+		 * defined pins. If there is no SW over-ride of the
+		 * flow control setting, then the variable hw->fc will
+		 * be initialized based on a value in the EEPROM.
+		 */
+		ret_val = e1000_read_eeprom(hw, EEPROM_INIT_CONTROL2_REG, 1,
+					    &eeprom_data);
+		if (ret_val < 0) {
+			dev_err(hw->dev, "EEPROM Read Error\n");
+			return ret_val;
+		}
+
 		if ((eeprom_data & EEPROM_WORD0F_PAUSE_MASK) == 0)
 			hw->fc = e1000_fc_none;
 		else if ((eeprom_data & EEPROM_WORD0F_PAUSE_MASK) == EEPROM_WORD0F_ASM_DIR)
@@ -1006,7 +1005,7 @@ static int e1000_setup_fiber_link(struct e1000_hw *hw)
 		txcw = E1000_TXCW_ANE | E1000_TXCW_FD | E1000_TXCW_PAUSE_MASK;
 		break;
 	default:
-		dev_dbg(hw->dev, "Flow control param set incorrectly\n");
+		dev_err(hw->dev, "Flow control param set incorrectly\n");
 		return -E1000_ERR_CONFIG;
 		break;
 	}
@@ -1044,7 +1043,7 @@ static int e1000_setup_fiber_link(struct e1000_hw *hw)
 			 * detect a signal. This will allow us to communicate with
 			 * non-autonegotiating link partners.
 			 */
-			dev_dbg(hw->dev, "Never got a valid link from auto-neg!!!\n");
+			dev_err(hw->dev, "Never got a valid link from auto-neg!!!\n");
 			hw->autoneg_failed = 1;
 			return -E1000_ERR_NOLINK;
 		} else {
@@ -1052,7 +1051,7 @@ static int e1000_setup_fiber_link(struct e1000_hw *hw)
 			dev_dbg(hw->dev, "Valid Link Found\n");
 		}
 	} else {
-		dev_dbg(hw->dev, "No Signal Detected\n");
+		dev_err(hw->dev, "No Signal Detected\n");
 		return -E1000_ERR_NOLINK;
 	}
 	return 0;
@@ -1092,7 +1091,7 @@ static int32_t e1000_copper_link_preconfig(struct e1000_hw *hw)
 	/* Make sure we have a valid PHY */
 	ret_val = e1000_detect_gig_phy(hw);
 	if (ret_val) {
-		dev_dbg(hw->dev, "Error, did not detect valid phy.\n");
+		dev_err(hw->dev, "Error, did not detect valid phy.\n");
 		return ret_val;
 	}
 	dev_dbg(hw->dev, "Phy ID = %x \n", hw->phy_id);
@@ -1236,7 +1235,7 @@ static int32_t e1000_copper_link_igp_setup(struct e1000_hw *hw)
 
 	ret_val = e1000_phy_reset(hw);
 	if (ret_val) {
-		dev_dbg(hw->dev, "Error Resetting the PHY\n");
+		dev_err(hw->dev, "Error Resetting the PHY\n");
 		return ret_val;
 	}
 
@@ -1255,7 +1254,7 @@ static int32_t e1000_copper_link_igp_setup(struct e1000_hw *hw)
 		/* disable lplu d3 during driver init */
 		ret_val = e1000_set_d3_lplu_state_off(hw);
 		if (ret_val) {
-			dev_dbg(hw->dev, "Error Disabling LPLU D3\n");
+			dev_err(hw->dev, "Error Disabling LPLU D3\n");
 			return ret_val;
 		}
 	}
@@ -1263,7 +1262,7 @@ static int32_t e1000_copper_link_igp_setup(struct e1000_hw *hw)
 	/* disable lplu d0 during driver init */
 	ret_val = e1000_set_d0_lplu_state_off(hw);
 	if (ret_val) {
-		dev_dbg(hw->dev, "Error Disabling LPLU D0\n");
+		dev_err(hw->dev, "Error Disabling LPLU D0\n");
 		return ret_val;
 	}
 
@@ -1457,7 +1456,7 @@ static int32_t e1000_copper_link_ggp_setup(struct e1000_hw *hw)
 	/* SW Reset the PHY so all changes take effect */
 	ret_val = e1000_phy_reset(hw);
 	if (ret_val) {
-		dev_dbg(hw->dev, "Error Resetting the PHY\n");
+		dev_err(hw->dev, "Error Resetting the PHY\n");
 		return ret_val;
 	}
 
@@ -1586,7 +1585,7 @@ static int32_t e1000_copper_link_mgp_setup(struct e1000_hw *hw)
 	/* SW Reset the PHY so all changes take effect */
 	ret_val = e1000_phy_reset(hw);
 	if (ret_val) {
-		dev_dbg(hw->dev, "Error Resetting the PHY\n");
+		dev_err(hw->dev, "Error Resetting the PHY\n");
 		return ret_val;
 	}
 
@@ -1615,7 +1614,7 @@ static int32_t e1000_copper_link_autoneg(struct e1000_hw *hw)
 	dev_dbg(hw->dev, "Reconfiguring auto-neg advertisement params\n");
 	ret_val = e1000_phy_setup_autoneg(hw);
 	if (ret_val) {
-		dev_dbg(hw->dev, "Error Setting up Auto-Negotiation\n");
+		dev_err(hw->dev, "Error Setting up Auto-Negotiation\n");
 		return ret_val;
 	}
 	dev_dbg(hw->dev, "Restarting Auto-Neg\n");
@@ -1634,7 +1633,7 @@ static int32_t e1000_copper_link_autoneg(struct e1000_hw *hw)
 
 	ret_val = e1000_wait_autoneg(hw);
 	if (ret_val) {
-		dev_dbg(hw->dev, "Error while waiting for autoneg to complete\n");
+		dev_err(hw->dev, "Error while waiting for autoneg to complete\n");
 		return ret_val;
 	}
 
@@ -1663,14 +1662,14 @@ static int32_t e1000_copper_link_postconfig(struct e1000_hw *hw)
 	} else {
 		ret_val = e1000_config_mac_to_phy(hw);
 		if (ret_val) {
-			dev_dbg(hw->dev, "Error configuring MAC to PHY settings\n");
+			dev_err(hw->dev, "Error configuring MAC to PHY settings\n");
 			return ret_val;
 		}
 	}
 
 	ret_val = e1000_config_fc_after_link_up(hw);
 	if (ret_val) {
-		dev_dbg(hw->dev, "Error Configuring Flow Control\n");
+		dev_err(hw->dev, "Error Configuring Flow Control\n");
 		return ret_val;
 	}
 
@@ -1983,7 +1982,7 @@ static int e1000_config_mac_to_phy(struct e1000_hw *hw)
 	 * registers depending on negotiated values.
 	 */
 	if (e1000_read_phy_reg(hw, M88E1000_PHY_SPEC_STATUS, &phy_data) < 0) {
-		dev_dbg(hw->dev, "PHY Read Error\n");
+		dev_err(hw->dev, "PHY Read Error\n");
 		return -E1000_ERR_PHY;
 	}
 	if (phy_data & M88E1000_PSSR_DPLX)
@@ -2059,7 +2058,7 @@ static int e1000_force_mac_fc(struct e1000_hw *hw)
 		ctrl |= (E1000_CTRL_TFCE | E1000_CTRL_RFCE);
 		break;
 	default:
-		dev_dbg(hw->dev, "Flow control param set incorrectly\n");
+		dev_err(hw->dev, "Flow control param set incorrectly\n");
 		return -E1000_ERR_CONFIG;
 	}
 
@@ -2098,17 +2097,17 @@ static int32_t e1000_config_fc_after_link_up(struct e1000_hw *hw)
 	 * some "sticky" (latched) bits.
 	 */
 	if (e1000_read_phy_reg(hw, PHY_STATUS, &mii_status_reg) < 0) {
-		dev_dbg(hw->dev, "PHY Read Error \n");
+		dev_err(hw->dev, "PHY Read Error \n");
 		return -E1000_ERR_PHY;
 	}
 
 	if (e1000_read_phy_reg(hw, PHY_STATUS, &mii_status_reg) < 0) {
-		dev_dbg(hw->dev, "PHY Read Error \n");
+		dev_err(hw->dev, "PHY Read Error \n");
 		return -E1000_ERR_PHY;
 	}
 
 	if (!(mii_status_reg & MII_SR_AUTONEG_COMPLETE)) {
-		dev_dbg(hw->dev, "Copper PHY and Auto Neg has not completed.\n");
+		dev_err(hw->dev, "Copper PHY and Auto Neg has not completed.\n");
 		return 0;
 	}
 
@@ -2119,12 +2118,12 @@ static int32_t e1000_config_fc_after_link_up(struct e1000_hw *hw)
 	 * negotiated.
 	 */
 	if (e1000_read_phy_reg(hw, PHY_AUTONEG_ADV, &mii_nway_adv_reg) < 0) {
-		dev_dbg(hw->dev, "PHY Read Error\n");
+		dev_err(hw->dev, "PHY Read Error\n");
 		return -E1000_ERR_PHY;
 	}
 
 	if (e1000_read_phy_reg(hw, PHY_LP_ABILITY, &mii_nway_lp_ability_reg) < 0) {
-		dev_dbg(hw->dev, "PHY Read Error\n");
+		dev_err(hw->dev, "PHY Read Error\n");
 		return -E1000_ERR_PHY;
 	}
 
@@ -2250,7 +2249,7 @@ static int32_t e1000_config_fc_after_link_up(struct e1000_hw *hw)
 	 */
 	ret_val = e1000_force_mac_fc(hw);
 	if (ret_val < 0) {
-		dev_dbg(hw->dev, "Error forcing flow control settings\n");
+		dev_err(hw->dev, "Error forcing flow control settings\n");
 		return ret_val;
 	}
 
@@ -2399,11 +2398,11 @@ static int e1000_wait_autoneg(struct e1000_hw *hw)
 		 * Complete bit to be set.
 		 */
 		if (e1000_read_phy_reg(hw, PHY_STATUS, &phy_data) < 0) {
-			dev_dbg(hw->dev, "PHY Read Error\n");
+			dev_err(hw->dev, "PHY Read Error\n");
 			return -E1000_ERR_PHY;
 		}
 		if (e1000_read_phy_reg(hw, PHY_STATUS, &phy_data) < 0) {
-			dev_dbg(hw->dev, "PHY Read Error\n");
+			dev_err(hw->dev, "PHY Read Error\n");
 			return -E1000_ERR_PHY;
 		}
 		if (phy_data & MII_SR_AUTONEG_COMPLETE) {
@@ -2412,7 +2411,7 @@ static int e1000_wait_autoneg(struct e1000_hw *hw)
 		}
 		mdelay(100);
 	}
-	dev_dbg(hw->dev, "Auto-Neg timedout.\n");
+	dev_err(hw->dev, "Auto-Neg timedout.\n");
 	return -E1000_ERR_TIMEOUT;
 }
 
@@ -2578,11 +2577,11 @@ static int e1000_phy_read(struct mii_bus *bus, int phy_addr, int reg_addr)
 				break;
 		}
 		if (!(mdic & E1000_MDIC_READY)) {
-			dev_dbg(hw->dev, "MDI Read did not complete\n");
+			dev_err(hw->dev, "MDI Read did not complete\n");
 			return -E1000_ERR_PHY;
 		}
 		if (mdic & E1000_MDIC_ERROR) {
-			dev_dbg(hw->dev, "MDI Error\n");
+			dev_err(hw->dev, "MDI Error\n");
 			return -E1000_ERR_PHY;
 		}
 		return mdic;
@@ -2667,7 +2666,7 @@ static int e1000_phy_write(struct mii_bus *bus, int phy_addr,
 				break;
 		}
 		if (!(mdic & E1000_MDIC_READY)) {
-			dev_dbg(hw->dev, "MDI Write did not complete\n");
+			dev_err(hw->dev, "MDI Write did not complete\n");
 			return -E1000_ERR_PHY;
 		}
 	} else {
@@ -2774,7 +2773,7 @@ static int32_t e1000_get_phy_cfg_done(struct e1000_hw *hw)
 			timeout--;
 		}
 		if (!timeout) {
-			dev_dbg(hw->dev, "MNG configuration cycle has not completed.\n");
+			dev_err(hw->dev, "MNG configuration cycle has not completed.\n");
 			return -E1000_ERR_RESET;
 		}
 		break;
@@ -2810,7 +2809,7 @@ static int32_t e1000_phy_hw_reset(struct e1000_hw *hw)
 			swfw = E1000_SWFW_PHY1_SM;
 
 		if (e1000_swfw_sync_acquire(hw, swfw)) {
-			dev_dbg(hw->dev, "Unable to acquire swfw sync\n");
+			dev_err(hw->dev, "Unable to acquire swfw sync\n");
 			return -E1000_ERR_SWFW_SYNC;
 		}
 
@@ -3109,12 +3108,12 @@ static int32_t e1000_detect_gig_phy(struct e1000_hw *hw)
 			phy_type = e1000_phy_igb;
 		break;
 	default:
-		dev_dbg(hw->dev, "Invalid MAC type %d\n", hw->mac_type);
+		dev_err(hw->dev, "Invalid MAC type %d\n", hw->mac_type);
 		return -E1000_ERR_CONFIG;
 	}
 
 	if (phy_type == e1000_phy_undefined) {
-		dev_dbg(hw->dev, "Invalid PHY ID 0x%X\n", hw->phy_id);
+		dev_err(hw->dev, "Invalid PHY ID 0x%X\n", hw->phy_id);
 		return -EINVAL;
 	}
 
@@ -3199,21 +3198,24 @@ static int e1000_sw_init(struct eth_device *edev)
 	return E1000_SUCCESS;
 }
 
-static void fill_rx(struct e1000_hw *hw)
+static int e1000_bd_next_index(int index)
 {
-	volatile struct e1000_rx_desc *rd;
-	volatile u32 *bla;
-	int i;
+	return (index + 1) % 8;
+}
+
+static void e1000_fill_rx(struct e1000_hw *hw)
+{
+	struct e1000_rx_desc *rd = &hw->rx_base[hw->rx_tail];
 
 	hw->rx_last = hw->rx_tail;
-	rd = hw->rx_base + hw->rx_tail;
-	hw->rx_tail = (hw->rx_tail + 1) % 8;
+	hw->rx_tail = e1000_bd_next_index(hw->rx_tail);
 
-	bla = (void *)rd;
-	for (i = 0; i < 4; i++)
-		*bla++ = 0;
-
-	rd->buffer_addr = cpu_to_le64((unsigned long)hw->packet);
+	writeq(hw->packet_dma, &rd->buffer_addr);
+	writew(0, &rd->length);
+	writew(0, &rd->csum);
+	writeb(0, &rd->status);
+	writeb(0, &rd->errors);
+	writew(0, &rd->special);
 
 	e1000_write_reg(hw, E1000_RDT, hw->rx_tail);
 }
@@ -3230,9 +3232,10 @@ static void e1000_configure_tx(struct e1000_hw *hw)
 	unsigned long tctl;
 	unsigned long tipg, tarc;
 	uint32_t ipgr1, ipgr2;
+	const unsigned long tx_base = (unsigned long)hw->tx_base;
 
-	e1000_write_reg(hw, E1000_TDBAL, (unsigned long)hw->tx_base);
-	e1000_write_reg(hw, E1000_TDBAH, 0);
+	e1000_write_reg(hw, E1000_TDBAL, lower_32_bits(tx_base));
+	e1000_write_reg(hw, E1000_TDBAH, upper_32_bits(tx_base));
 
 	e1000_write_reg(hw, E1000_TDLEN, 128);
 
@@ -3348,6 +3351,7 @@ static void e1000_setup_rctl(struct e1000_hw *hw)
 static void e1000_configure_rx(struct e1000_hw *hw)
 {
 	unsigned long rctl, ctrl_ext;
+	const unsigned long rx_base = (unsigned long)hw->rx_base;
 
 	hw->rx_tail = 0;
 	/* make sure receives are disabled while setting up the descriptors */
@@ -3369,8 +3373,8 @@ static void e1000_configure_rx(struct e1000_hw *hw)
 		e1000_write_flush(hw);
 	}
 	/* Setup the Base and Length of the Rx Descriptor Ring */
-	e1000_write_reg(hw, E1000_RDBAL, (unsigned long)hw->rx_base);
-	e1000_write_reg(hw, E1000_RDBAH, 0);
+	e1000_write_reg(hw, E1000_RDBAL, lower_32_bits(rx_base));
+	e1000_write_reg(hw, E1000_RDBAH, upper_32_bits(rx_base));
 
 	e1000_write_reg(hw, E1000_RDLEN, 128);
 
@@ -3388,59 +3392,62 @@ static void e1000_configure_rx(struct e1000_hw *hw)
 
 	e1000_write_reg(hw, E1000_RCTL, rctl);
 
-	fill_rx(hw);
+	e1000_fill_rx(hw);
 }
 
 static int e1000_poll(struct eth_device *edev)
 {
 	struct e1000_hw *hw = edev->priv;
-	volatile struct e1000_rx_desc *rd;
-	uint32_t len;
+	struct e1000_rx_desc *rd = &hw->rx_base[hw->rx_last];
 
-	rd = hw->rx_base + hw->rx_last;
+	if (readb(&rd->status) & E1000_RXD_STAT_DD) {
+		const uint16_t len = readw(&rd->length);
 
-	if (!(le32_to_cpu(rd->status)) & E1000_RXD_STAT_DD)
-		return 0;
+		dma_sync_single_for_cpu(hw->packet_dma, len,
+					DMA_FROM_DEVICE);
 
-	len = le32_to_cpu(rd->length);
+		net_receive(edev, hw->packet, len);
 
-	dma_sync_single_for_cpu((unsigned long)hw->packet, len, DMA_FROM_DEVICE);
+		dma_sync_single_for_device(hw->packet_dma, len,
+					   DMA_FROM_DEVICE);
+		e1000_fill_rx(hw);
+		return 1;
+	}
 
-	net_receive(edev, (uchar *)hw->packet, len);
-	fill_rx(hw);
-	return 1;
+	return 0;
 }
 
 static int e1000_transmit(struct eth_device *edev, void *txpacket, int length)
 {
 	struct e1000_hw *hw = edev->priv;
-	volatile struct e1000_tx_desc *txp;
-	uint64_t to;
+	struct e1000_tx_desc *txp = &hw->tx_base[hw->tx_tail];
+	dma_addr_t dma;
+	uint32_t stat;
+	int ret;
 
-	txp = hw->tx_base + hw->tx_tail;
-	hw->tx_tail = (hw->tx_tail + 1) % 8;
+	hw->tx_tail = e1000_bd_next_index(hw->tx_tail);
 
-	txp->buffer_addr = cpu_to_le64(virt_to_bus(hw->pdev, txpacket));
-	txp->lower.data = cpu_to_le32(hw->txd_cmd | length);
-	txp->upper.data = 0;
+	writel(hw->txd_cmd | length, &txp->lower.data);
+	writel(0, &txp->upper.data);
 
-	dma_sync_single_for_device((unsigned long)txpacket, length, DMA_TO_DEVICE);
+	dma = dma_map_single(hw->dev, txpacket, length, DMA_TO_DEVICE);
+	if (dma_mapping_error(hw->dev, dma))
+		return -EFAULT;
 
+	writeq(dma, &txp->buffer_addr);
 	e1000_write_reg(hw, E1000_TDT, hw->tx_tail);
 
 	e1000_write_flush(hw);
 
-	to = get_time_ns();
-	while (1) {
-		if (le32_to_cpu(txp->upper.data) & E1000_TXD_STAT_DD)
-			break;
-		if (is_timeout(to, MSECOND)) {
-			dev_dbg(hw->dev, "e1000: tx timeout\n");
-			return -ETIMEDOUT;
-		}
-	}
+	ret = readl_poll_timeout(&txp->upper.data,
+				 stat, stat & E1000_TXD_STAT_DD,
+				 MSECOND / USECOND);
+	if (ret)
+		dev_dbg(hw->dev, "e1000: tx timeout\n");
 
-	return 0;
+	dma_unmap_single(hw->dev, dma, length, DMA_TO_DEVICE);
+
+	return ret;
 }
 
 static void e1000_disable(struct eth_device *edev)
@@ -3559,7 +3566,6 @@ static int e1000_probe(struct pci_dev *pdev, const struct pci_device_id *id)
 
 	hw->tx_base = dma_alloc_coherent(16 * sizeof(*hw->tx_base), DMA_ADDRESS_BROKEN);
 	hw->rx_base = dma_alloc_coherent(16 * sizeof(*hw->rx_base), DMA_ADDRESS_BROKEN);
-	hw->packet = dma_alloc_coherent(4096, DMA_ADDRESS_BROKEN);
 
 	edev = &hw->edev;
 
@@ -3567,6 +3573,15 @@ static int e1000_probe(struct pci_dev *pdev, const struct pci_device_id *id)
 	hw->dev = &pdev->dev;
 	pdev->dev.priv = hw;
 	edev->priv = hw;
+
+	hw->packet = dma_alloc(PAGE_SIZE);
+	if (!hw->packet)
+		return -ENOMEM;
+
+	hw->packet_dma = dma_map_single(hw->dev, hw->packet, PAGE_SIZE,
+					DMA_FROM_DEVICE);
+	if (dma_mapping_error(hw->dev, hw->packet_dma))
+		return -EFAULT;
 
 	hw->hw_addr = pci_iomap(pdev, 0);
 

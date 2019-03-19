@@ -446,9 +446,18 @@ static int imx_ocotp_set_mac(struct param_d *param, void *priv)
 {
 	char buf[MAC_BYTES];
 	struct ocotp_priv_ethaddr *ethaddr = priv;
+	int ret;
 
-	ethaddr->data->format_mac(buf, ethaddr->value,
-				  OCOTP_MAC_TO_HW);
+	ret = regmap_bulk_read(ethaddr->map, ethaddr->offset, buf, MAC_BYTES);
+	if (ret < 0)
+		return ret;
+
+	if (ethaddr->offset != IMX6UL_MAC_OFFSET_1)
+		ethaddr->data->format_mac(buf, ethaddr->value,
+					  OCOTP_MAC_TO_HW);
+	else
+		ethaddr->data->format_mac(buf + 2, ethaddr->value,
+					  OCOTP_MAC_TO_HW);
 
 	return regmap_bulk_write(ethaddr->map, ethaddr->offset,
 				 buf, MAC_BYTES);
@@ -697,11 +706,4 @@ static struct driver_d imx_ocotp_driver = {
 	.probe	= imx_ocotp_probe,
 	.of_compatible = DRV_OF_COMPAT(imx_ocotp_dt_ids),
 };
-
-static int imx_ocotp_init(void)
-{
-	platform_driver_register(&imx_ocotp_driver);
-
-	return 0;
-}
-postcore_initcall(imx_ocotp_init);
+postcore_platform_driver(imx_ocotp_driver);

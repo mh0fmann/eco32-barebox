@@ -1,11 +1,8 @@
+// SPDX-License-Identifier: GPL-2.0
 /*
  * PCIe driver for Marvell MVEBU SoCs
  *
  * Based on Linux drivers/pci/host/pci-mvebu.c
- *
- * This file is licensed under the terms of the GNU General Public
- * License version 2.  This program is licensed "as is" without any
- * warranty of any kind, whether express or implied.
  */
 
 #include <common.h>
@@ -148,14 +145,16 @@ static int mvebu_pcie_indirect_wr_conf(struct pci_bus *bus,
 	return PCIBIOS_SUCCESSFUL;
 }
 
-static int mvebu_pcie_res_start(struct pci_bus *bus, resource_size_t res_addr)
+static resource_size_t mvebu_pcie_res_start(struct pci_bus *bus,
+					    resource_size_t res_addr)
 {
 	struct mvebu_pcie *pcie = to_pcie(bus->host);
 
-	return (int)pcie->membase + (res_addr & (resource_size(&pcie->mem)-1));
+	return (resource_size_t)pcie->membase +
+		(res_addr & (resource_size(&pcie->mem) - 1));
 }
 
-static struct pci_ops mvebu_pcie_indirect_ops = {
+static const struct pci_ops mvebu_pcie_indirect_ops = {
 	.read = mvebu_pcie_indirect_rd_conf,
 	.write = mvebu_pcie_indirect_wr_conf,
 	.res_start = mvebu_pcie_res_start,

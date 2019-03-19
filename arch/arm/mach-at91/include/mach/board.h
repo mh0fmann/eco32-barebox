@@ -64,6 +64,8 @@ struct atmel_nand_data {
 	u8		cle;		/* address line number connected to CLE */
 	u8		bus_width_16;	/* buswidth is 16 bit */
 	u8		ecc_mode;	/* NAND_ECC_* */
+	u8		ecc_strength;	/* number of bits to correct per ECC step */
+	u8		ecc_size_shift;	/* data bytes covered by a single ECC step.*/
 	u8		on_flash_bbt;	/* Use flash based bbt */
 	u8		has_pmecc;	/* Use PMECC */
 	u8		bus_on_d0;
@@ -100,6 +102,7 @@ resource_size_t __init at91_configure_usart2(unsigned pins);
 resource_size_t __init at91_configure_usart3(unsigned pins);
 resource_size_t __init at91_configure_usart4(unsigned pins);
 resource_size_t __init at91_configure_usart5(unsigned pins);
+resource_size_t __init at91_configure_usart6(unsigned pins);
 
 #if defined(CONFIG_DRIVER_SERIAL_ATMEL)
 static inline struct device_d * at91_register_uart(unsigned id, unsigned pins)
